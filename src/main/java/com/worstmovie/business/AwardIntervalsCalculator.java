@@ -7,10 +7,11 @@ import java.util.*;
 
 public class AwardIntervalsCalculator {
 
-
     public List<IntervalInfo> calculateIntervals(List<MovieModel> winners) {
+
         Map<String, List<Integer>> winnerYears = new HashMap<>();
         List<IntervalInfo> infoList = new ArrayList<>();
+
         for (MovieModel winner : winners) {
             List<Integer> years = winnerYears.getOrDefault(winner.producer(), new ArrayList<>());
             years.add(winner.year());
@@ -31,7 +32,12 @@ public class AwardIntervalsCalculator {
     }
 
     public List<IntervalInfo> getMinInterval(List<IntervalInfo> intervalInfos) {
-        int minInterval = intervalInfos.stream().min(Comparator.comparing(IntervalInfo::interval)).get().interval();
+        int minInterval = intervalInfos.stream()
+                .min(Comparator.comparing(IntervalInfo::interval))
+                .map(IntervalInfo::interval)
+                .orElse(0);
+
+        if (minInterval == 0) return Collections.emptyList();
 
         return intervalInfos.stream()
                 .filter(record -> record.interval() == minInterval)
@@ -39,7 +45,12 @@ public class AwardIntervalsCalculator {
     }
 
     public List<IntervalInfo> getMaxInterval(List<IntervalInfo> intervalInfos) {
-        int maxInterval = intervalInfos.stream().max(Comparator.comparing(IntervalInfo::interval)).get().interval();
+        int maxInterval = intervalInfos.stream()
+                .max(Comparator.comparing(IntervalInfo::interval))
+                .map(IntervalInfo::interval)
+                .orElse(0);
+
+        if (maxInterval == 0) return Collections.emptyList();
 
         return intervalInfos.stream()
                 .filter(record -> record.interval() == maxInterval)

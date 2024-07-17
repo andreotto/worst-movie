@@ -25,7 +25,7 @@ public class WorstMovieApplication {
         return args -> {
 
             Path path = Paths.get(Objects.requireNonNull(
-                    ReadCSV.class.getResource("/changedmovielist.csv")).toURI());
+                    ReadCSV.class.getResource("/movielist.csv")).toURI());
 
             List<MovieModel> movieModels = ReadCSV.readCSV(path);
             awardMovieService.saveMovies(movieModels);

@@ -1,6 +1,7 @@
 package com.worstmovie.service;
 
 import com.worstmovie.business.AwardIntervalsCalculator;
+import com.worstmovie.converter.MovieConverter;
 import com.worstmovie.entity.Movies;
 import com.worstmovie.model.AwardProducerModel;
 import com.worstmovie.model.IntervalInfo;
@@ -13,14 +14,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AwardMovieService {
 
+    private final AwardIntervalsCalculator awardIntervalCalculator;
     private final MoviesRepository moviesRepository;
+    private final MovieConverter movieConverter;
 
     /**
      * Retrieves a list of AwardProducerModel objects representing the intervals
@@ -34,21 +36,25 @@ public class AwardMovieService {
      */
     public AwardProducerModel getAwardProducers() {
 
-        List<MovieModel> movieModels = Optional.ofNullable(moviesRepository.findWinners())
+        List<MovieModel> movieModels = getMovieWinners();
+
+        List<MovieModel> moviesAwards = awardIntervalCalculator.separateList(movieModels);
+
+        List<IntervalInfo> intervalInfos = awardIntervalCalculator.calculateIntervals(moviesAwards);
+
+        List<IntervalInfo> minInterval = awardIntervalCalculator.getMinInterval(intervalInfos);
+        List<IntervalInfo> maxInternal = awardIntervalCalculator.getMaxInterval(intervalInfos);
+
+        return new AwardProducerModel(minInterval, maxInternal);
+    }
+
+    private List<MovieModel> getMovieWinners() {
+        return Optional.ofNullable(moviesRepository.findMoviesByWinnerIsTrue())
                 .filter(list -> !list.isEmpty())
                 .orElseThrow(NoSuchElementException::new)
                 .stream()
-                .map(movie -> new MovieModel(movie.getYear(), movie.getTitle(), movie.getStudio(),
-                        movie.getProducer(), movie.getWinner()))
-                .collect(Collectors.toList());
-
-        AwardIntervalsCalculator awardInterval = new AwardIntervalsCalculator();
-        List<IntervalInfo> intervalInfos = awardInterval.calculateIntervals(movieModels);
-
-        List<IntervalInfo> minInterval = awardInterval.getMinInterval(intervalInfos);
-        List<IntervalInfo> maxInternal = awardInterval.getMaxInterval(intervalInfos);
-
-        return new AwardProducerModel(minInterval, maxInternal);
+                .map(movieConverter::convertToMovieModel)
+                .toList();
     }
 
     /**
@@ -58,17 +64,8 @@ public class AwardMovieService {
      * @param movies the list of movie models to be saved
      */
     public void saveMovies(List<MovieModel> movies) {
-
-        List<Movies> m = movies.stream()
-                .map(movie -> Movies.builder()
-                        .year(movie.year())
-                        .title(movie.title())
-                        .producer(movie.producer())
-                        .studio(movie.studio())
-                        .winner(movie.winner()).build())
-                .toList();
-
-
-        moviesRepository.saveAll(m);
+        List<Movies> entityMovies = movieConverter.convertToEntityMovies(movies);
+        moviesRepository.saveAll(entityMovies);
     }
+
 }
